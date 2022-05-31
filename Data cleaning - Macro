@@ -1,0 +1,67 @@
+Sub LimpiezaReporte()
+
+'1.- Pedir las variables
+Dim ws As Worksheet
+Dim cuantosbalances, cantidadfilas, ultfila As Integer
+Dim lod, proyecto, balance As Range
+Dim Tabla As ListObject
+										
+'2.- Definir las varibles conocidas
+Sheets("Reportes").Select
+cuantosbalances = Application.CountIf(Columns("A:A"), "Balance de Prueba (por Proyecto)")
+cantidadfilas = Application.CountA(Rows("10")) + 1
+								
+'3.- Agregar nueva hoja de Excel
+On Error Resume Next
+Sheets("Resultado Macro").Delete
+On Error GoTo 0
+Set ws = Sheets.Add
+ws.Name = ("Resultado Macro")
+										
+'4.- Copiar títulos a la nueva hoja de calculo
+With Sheets("Reportes")
+.Range("A10", .Range("A10").Offset(0, cantidadfilas)).Copy ws.Range("A1")
+.Range("A9", .Range("A9").Offset(0, cantidadfilas)).Copy ws.Range("A2")
+End With
+										
+'5.- Copiar todos los datos de todas los balances
+'5.1.- Definir las nuevas variables ultfila y lod
+Sheets("Reportes").Select
+ultfila = ws.Cells(Rows.Count, 4).End(xlUp).Row + 1
+Set lod = Cells.Find(what:="Balance de Prueba (por Proyecto)")
+lod.Select
+									
+'5.2.- Armar un ciclo para copiar y pegar tablas
+For i = 1 To cuantosbalances
+lod.Offset(7, 0).Select
+Range(Selection, Selection.End(xlDown)).Select
+Range(Selection, Selection.Offset(0, cantidadfilas)).Copy ws.Range("A" & ultfila)
+ultfila = ws.Cells(Rows.Count, 4).End(xlUp).Row + 1
+Set lod = Cells.FindNext(lod)
+Next i
+										
+'6.- Convertirla en una tabla en Excel
+Set Tabla = ws.ListObjects.Add(xlSrcRange, ws.Range("A1", 
+ws.Range("A1").Offset(ultfila - 2, cantidadfilas)), xlYes)
+										
+'6.1.- Seleccionar la fila proyectos
+Set proyecto = ws.Range("E3", ws.Range("E3").Offset(0, cantidadfilas - 5))
+									
+'6.2.- Ciclo que sustituya la lista de proyectos
+For Each cell In proyecto
+If IsEmpty(cell.Value) = True Then
+cell.Value = cell.Offset(0, 1)
+End If
+Next cell
+										
+'6.3.- Seleccionar la columna balance
+Set balance = ws.Range("D2", ws.Range("D2").Offset(0, cantidadfilas - 4))
+										
+'6.4.- Dejar solo la columna balance
+For Each cell In balance
+If cell.Value = "Balance Final" Then
+Range(cell.Offset(0, -3), cell.Offset(0, -1)).EntireColumn.Delete
+End If
+Next cell
+										
+End Sub
